@@ -29,13 +29,13 @@ jobs:
   playground:
     runs-on: ubuntu-latest
     steps:
-      - uses: YOUR-OWNER/action-wp-playground-issues@YOUR-REF
+      - uses: akirk/action-wp-playground-issues@main
         with:
           plugin-path: .
           issue-number: ${{ inputs.issue-number }}
 ```
 
-Replace `YOUR-OWNER` and `YOUR-REF` with the published action repository and a release or commit. No checkout is needed. For themes, replace `plugin-path` with `theme-path`. For a monorepo, use a directory such as `plugins/my-plugin`. Configure exactly one installation path.
+The example follows `main`; you can pin a published release tag or commit SHA instead. No checkout is needed. For themes, replace `plugin-path` with `theme-path`. For a monorepo, use a directory such as `plugins/my-plugin`. Configure exactly one installation path.
 
 The action creates one managed bot comment and updates it when the issue changes. It skips closed issues and pull requests. The concurrency setting prevents overlapping runs from creating duplicate comments.
 
