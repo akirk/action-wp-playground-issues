@@ -1,6 +1,34 @@
 export const marker = '<!-- action-wp-playground-issues:v1 -->';
 
-export function buildPlayground({ repository, issue, pluginPath = '', themePath = '', ref, host = 'https://playground.wordpress.net/' }) {
+function validateRepositoryBlueprint(blueprint) {
+  if (!blueprint || typeof blueprint !== 'object' || Array.isArray(blueprint) || (blueprint.steps !== undefined && !Array.isArray(blueprint.steps))) {
+    throw new Error('blueprint.json must contain a Blueprint object with an optional steps array.');
+  }
+}
+
+export async function loadRepositoryBlueprint(api, repoPath, ref) {
+  let file;
+  try {
+    file = await api(`/repos/${repoPath}/contents/blueprint.json?ref=${encodeURIComponent(ref)}`);
+  } catch (error) {
+    if (error.status === 404) return undefined;
+    throw error;
+  }
+  if (file.type !== 'file' || file.encoding !== 'base64' || typeof file.content !== 'string') {
+    throw new Error('Could not read blueprint.json as a JSON file from the repository.');
+  }
+  let blueprint;
+  try {
+    blueprint = JSON.parse(Buffer.from(file.content, 'base64').toString('utf8'));
+  } catch {
+    throw new Error('blueprint.json must contain valid JSON.');
+  }
+  validateRepositoryBlueprint(blueprint);
+  return blueprint;
+}
+
+export function buildPlayground({ repository, issue, pluginPath = '', themePath = '', ref, repositoryBlueprint, host = 'https://playground.wordpress.net/' }) {
+  if (repositoryBlueprint !== undefined) validateRepositoryBlueprint(repositoryBlueprint);
   if (Boolean(pluginPath) === Boolean(themePath)) throw new Error('Set exactly one of plugin-path or theme-path (use . for the repository root).');
   const type = pluginPath ? 'plugin' : 'theme';
   const rawPath = (pluginPath || themePath).trim().replace(/^\.\//, '').replace(/\/$/, '');
@@ -13,15 +41,18 @@ export function buildPlayground({ repository, issue, pluginPath = '', themePath 
   const root = `/wordpress/wp-content/${type}s/${slug}`;
   const issueUrl = issue.html_url || `${repoUrl}/issues/${issue.number}`;
   const context = `# Issue #${issue.number}: ${issue.title}\n\n${issueUrl}\n\n${issue.body || ''}\n\n---\nRepository: ${repoUrl}\nBase branch: ${branch}\nWorking directory: ${root}\nRepository directory: ${path || '.'}\n\nImplement this issue in the working directory and verify the changes. Review them before using Playground's Export to GitHub to create a pull request. Include Fixes #${issue.number} in the PR description.\n`;
-  const blueprint = {
+  const baseBlueprint = repositoryBlueprint ?? {
     $schema: 'https://playground.wordpress.net/blueprint-schema.json',
     login: true,
     landingPage: '/wp-admin/',
     features: { networking: true },
     steps: [
       { step: `install${type === 'plugin' ? 'Plugin' : 'Theme'}`, [`${type}Data`]: { resource: 'git:directory', url: repoUrl, ref: branch, refType: 'branch', path: path || '/' }, options: { activate: true, targetFolderName: slug } },
-      { step: 'writeFile', path: '/wordpress/PLAYGROUND-ISSUE.md', data: context },
     ],
+  };
+  const blueprint = {
+    ...baseBlueprint,
+    steps: [...(baseBlueprint.steps || []), { step: 'writeFile', path: '/wordpress/PLAYGROUND-ISSUE.md', data: context }],
   };
   const url = new URL(host);
   if (url.protocol !== 'https:') throw new Error('playground-host must be an HTTPS URL.');
@@ -41,8 +72,9 @@ export function buildPlayground({ repository, issue, pluginPath = '', themePath 
   };
   for (const [key, value] of Object.entries(params)) url.searchParams.set(key, value);
   const playgroundUrl = url.toString();
-  const body = `${marker}\n[Implement this issue in WordPress Playground](${playgroundUrl})\n\nSign in to GitHub when prompted. The repository is installed and PR export is configured. With an AI client connected to Playground, ask it to read /wordpress/PLAYGROUND-ISSUE.md and implement the issue. Review and test your changes, then use **Export to GitHub** to create a PR.\n\nInclude **Fixes #${issue.number}** in the PR description. This workspace installs the ${type} directory from the repository; an AI client is not installed by this action.`;
-  if (body.length > 65000) throw new Error('Issue context makes the comment too large for GitHub. Shorten the issue body.');
+  const setup = repositoryBlueprint === undefined ? `This workspace installs the ${type} directory from the repository` : 'This workspace boots using the repository’s blueprint.json';
+  const body = `${marker}\n[Implement this issue in WordPress Playground](${playgroundUrl})\n\nSign in to GitHub when prompted. PR export is configured. With an AI client connected to Playground, ask it to read /wordpress/PLAYGROUND-ISSUE.md and implement the issue. Review and test your changes, then use **Export to GitHub** to create a PR.\n\nInclude **Fixes #${issue.number}** in the PR description. ${setup}; an AI client is not installed by this action.`;
+  if (body.length > 65000) throw new Error('Blueprint and issue context make the comment too large for GitHub. Shorten the issue body or blueprint.json.');
   return { playgroundUrl, blueprint, body };
 }
 

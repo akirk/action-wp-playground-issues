@@ -51,6 +51,16 @@ To install from a specific branch, set `ref` in the action's inputs:
 
 This installs the plugin from `dist/main` and configures PR export to target that branch. `plugin-path` or `theme-path` is relative to the selected branch. Without `ref`, the action uses the repository's default branch.
 
+## Repository blueprint
+
+Place a [Playground Blueprint](https://developer.wordpress.org/playground/blueprints/data-format/) in `blueprint.json` at the repository root to define the canonical boot configuration. The action automatically reads it from the branch selected by `ref` (or the default branch), using the workflow token. No checkout or additional input is needed.
+
+When this file exists, its settings and steps replace the generated installation blueprint. The action preserves the configured WordPress/PHP versions, plugins, theme setup, login, landing page, and step order, then appends a step writing `/wordpress/PLAYGROUND-ISSUE.md`. It does not add another installation step or rewrite branch references inside your blueprint.
+
+Keep exactly one of `plugin-path` or `theme-path` configured: it defines the directory mapped for PR export. Your blueprint must install the editable repository code at `/wordpress/wp-content/plugins/<slug>` or `/wordpress/wp-content/themes/<slug>`, where `<slug>` is the last component of the configured path (the repository name for `.`), lowercased with characters other than letters, digits, `_`, and `-` replaced by `-`. Use `options.targetFolderName` on the installation step to match this directory. For example, `plugin-path: plugins/my-plugin` exports `/wordpress/wp-content/plugins/my-plugin` to `plugins/my-plugin` in the selected branch.
+
+If `blueprint.json` is absent, the action generates its usual plugin or theme installation blueprint. Invalid JSON, an invalid top-level object or `steps` array, and API errors other than a missing file fail the action rather than silently falling back. Playground validates the remaining Blueprint fields when opening the link. The combined blueprint and issue context must fit in the GitHub comment size limit.
+
 ## Add a comment to an existing issue
 
 Once the workflow is on the repository's default branch, open **Actions → Implement issues in Playground → Run workflow**, enter the issue number, and run it. This adds the managed comment, or refreshes it if one already exists. Closed issues and PR numbers are skipped.
@@ -83,9 +93,9 @@ Outputs: `playground-url`, `blueprint-json`, and `comment-id`.
 3. Review and test changes inside the installed plugin or theme directory.
 4. Use Playground's **Export to GitHub** to create a PR. The destination branch and repository directory are preconfigured. Include `Fixes #123` (your issue number) in the PR description.
 
-This uses the native blueprint equivalent of the step library's `gitPlugin` / `gitTheme` steps with `prs: true`. It also sets the export destination directory explicitly for monorepos. GitHub authentication belongs to the contributor's browser session; the workflow token is never included in the link or blueprint.
+The generated fallback uses the native blueprint equivalent of the step library's `gitPlugin` / `gitTheme` steps with `prs: true`. Export destination directories are configured explicitly for monorepos, including when using a repository blueprint. GitHub authentication belongs to the contributor's browser session; the workflow token is never included in the link or blueprint.
 
-The link contains the issue body, so it should only be shared with people allowed to read the issue. Playground must be able to fetch the repository through its GitHub integration. Only github.com is supported. Very large issue bodies fail with a clear error when the generated comment would exceed GitHub's limit. The editable workspace contains the configured plugin or theme directory, rather than unrelated files elsewhere in the repository. Export remains an explicit contributor action.
+The link contains the issue body and any repository blueprint, so it should only be shared with people allowed to read them. Playground must be able to fetch the repository through its GitHub integration. Only github.com is supported. Large blueprints or issue bodies fail with a clear error when the generated comment would exceed GitHub's limit. PR export includes the configured plugin or theme directory. Export remains an explicit contributor action.
 
 Query parameters follow the [Playground Query API](https://wordpress.github.io/wordpress-playground/developers/apis/query-api/).
 

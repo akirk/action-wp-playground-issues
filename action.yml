@@ -1,5 +1,5 @@
 name: WordPress Playground Issues
-description: Post a Playground link with GitHub authentication and pull request export configured for an issue.
+description: Post a Playground link using a root blueprint.json when present, with GitHub authentication and pull request export configured for an issue.
 inputs:
   issue-number:
     description: Existing issue number; defaults to the issue in the event payload. Set for manual runs.
@@ -7,9 +7,9 @@ inputs:
     description: Token with issues write and contents read permissions; used only for the GitHub API.
     default: ${{ github.token }}
   plugin-path:
-    description: Plugin directory in the repository; use . for the root. Choose exactly one plugin or theme path.
+    description: Plugin directory to install or map for export with blueprint.json; use . for the root. Choose exactly one plugin or theme path.
   theme-path:
-    description: Theme directory in the repository; use . for the root.
+    description: Theme directory to install or map for export with blueprint.json; use . for the root.
   ref:
     description: Branch to install and target for export (for example, dist/main); defaults to the repository default branch.
   playground-host:
