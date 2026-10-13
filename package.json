@@ -1,0 +1,9 @@
+{
+  "name": "action-wp-playground-issues",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Open GitHub issues in WordPress Playground and export a pull request.",
+  "license": "GPL-2.0-or-later",
+  "scripts": { "test": "node --test test/*.test.js" }
+}
