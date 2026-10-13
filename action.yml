@@ -11,7 +11,9 @@ inputs:
   theme-path:
     description: Theme directory to install or map for export with blueprint.json; use . for the root.
   ref:
-    description: Branch to install and target for export (for example, dist/main); defaults to the repository default branch.
+    description: Branch to install and compare against for export (for example, dist/main); defaults to the repository default branch.
+  base-branch:
+    description: Target branch for new pull requests (for example, main); defaults to ref or the repository default branch.
   playground-host:
     description: WordPress Playground URL.
     default: https://playground.wordpress.net/

@@ -27,7 +27,7 @@ export async function loadRepositoryBlueprint(api, repoPath, ref) {
   return blueprint;
 }
 
-export function buildPlayground({ repository, issue, pluginPath = '', themePath = '', ref, repositoryBlueprint, host = 'https://playground.wordpress.net/' }) {
+export function buildPlayground({ repository, issue, pluginPath = '', themePath = '', ref, baseBranch, repositoryBlueprint, host = 'https://playground.wordpress.net/' }) {
   if (repositoryBlueprint !== undefined) validateRepositoryBlueprint(repositoryBlueprint);
   if (Boolean(pluginPath) === Boolean(themePath)) throw new Error('Set exactly one of plugin-path or theme-path (use . for the repository root).');
   const type = pluginPath ? 'plugin' : 'theme';
@@ -37,10 +37,11 @@ export function buildPlayground({ repository, issue, pluginPath = '', themePath 
   const slug = (path.split('/').pop() || repository.name).toLowerCase().replace(/[^a-z0-9_-]/g, '-');
   const branch = ref || repository.default_branch;
   if (!branch) throw new Error('A repository default branch or ref is required.');
+  const targetBranch = baseBranch || branch;
   const repoUrl = `https://github.com/${repository.full_name}`;
   const root = `/wordpress/wp-content/${type}s/${slug}`;
   const issueUrl = issue.html_url || `${repoUrl}/issues/${issue.number}`;
-  const context = `# Issue #${issue.number}: ${issue.title}\n\n${issueUrl}\n\n${issue.body || ''}\n\n---\nRepository: ${repoUrl}\nBase branch: ${branch}\nWorking directory: ${root}\nRepository directory: ${path || '.'}\n\nImplement this issue in the working directory and verify the changes. Review them before using Playground's Export to GitHub to create a pull request. Include Fixes #${issue.number} in the PR description.\n`;
+  const context = `# Issue #${issue.number}: ${issue.title}\n\n${issueUrl}\n\n${issue.body || ''}\n\n---\nRepository: ${repoUrl}\nInstalled branch: ${branch}\nBase branch: ${targetBranch}\nWorking directory: ${root}\nRepository directory: ${path || '.'}\n\nImplement this issue in the working directory and verify the changes. Review and test them before exporting. If your connected client exposes playground_export_to_github, call it with {} to use the launch settings and create a pull request; otherwise use Playground's Export to GitHub. Export only when the contributor asks you to submit a PR. Include Fixes #${issue.number} in the PR description.\n`;
   const baseBlueprint = repositoryBlueprint ?? {
     $schema: 'https://playground.wordpress.net/blueprint-schema.json',
     login: true,
@@ -60,6 +61,7 @@ export function buildPlayground({ repository, issue, pluginPath = '', themePath 
   const params = {
     'gh-ensure-auth': 'yes',
     'ghexport-repo-url': `${repoUrl}/tree/${branch}${path ? '/' + path : ''}`,
+    'ghexport-base-branch': targetBranch,
     'ghexport-content-type': 'custom-paths',
     'ghexport-path': '.',
     [`ghexport-${type}`]: slug,
@@ -73,7 +75,7 @@ export function buildPlayground({ repository, issue, pluginPath = '', themePath 
   for (const [key, value] of Object.entries(params)) url.searchParams.set(key, value);
   const playgroundUrl = url.toString();
   const setup = repositoryBlueprint === undefined ? `This workspace installs the ${type} directory from the repository` : 'This workspace boots using the repository’s blueprint.json';
-  const body = `${marker}\n[Implement this issue in WordPress Playground](${playgroundUrl})\n\nSign in to GitHub when prompted. PR export is configured. With an AI client connected to Playground, ask it to read /wordpress/PLAYGROUND-ISSUE.md and implement the issue. Review and test your changes, then use **Export to GitHub** to create a PR.\n\nInclude **Fixes #${issue.number}** in the PR description. ${setup}; an AI client is not installed by this action.`;
+  const body = `${marker}\n[Implement this issue in WordPress Playground](${playgroundUrl})\n\nSign in to GitHub when prompted. PR export is configured. With an AI client connected to Playground, ask it to read /wordpress/PLAYGROUND-ISSUE.md and implement the issue. Review and test your changes, then ask your connected client to submit a PR using \`playground_export_to_github\`, or use **Export to GitHub**.\n\nInclude **Fixes #${issue.number}** in the PR description. ${setup}; an AI client is not installed by this action.`;
   if (body.length > 65000) throw new Error('Blueprint and issue context make the comment too large for GitHub. Shorten the issue body or blueprint.json.');
   return { playgroundUrl, blueprint, body };
 }

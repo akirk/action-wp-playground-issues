@@ -46,10 +46,11 @@ To install from a specific branch, set `ref` in the action's inputs:
         with:
           plugin-path: .
           ref: dist/main
+          base-branch: main
           issue-number: ${{ inputs.issue-number }}
 ```
 
-This installs the plugin from `dist/main` and configures PR export to target that branch. `plugin-path` or `theme-path` is relative to the selected branch. Without `ref`, the action uses the repository's default branch.
+This installs the plugin from `dist/main`, compares edits against that branch, and applies the changes to a new branch from `main` with a PR targeting `main`. Unchanged distribution files are excluded from the changeset. Omit `base-branch` to target the installed branch. `plugin-path` or `theme-path` is relative to the selected branch. Without `ref`, the action uses the repository's default branch.
 
 ## Repository blueprint
 
@@ -80,7 +81,8 @@ New issues still get the comment automatically. Manual runs let you add it to ol
 | `issue-number` | event issue | Explicit issue number for manual runs. |
 | `plugin-path` | unset | Plugin directory; `.` means repository root. |
 | `theme-path` | unset | Theme directory; mutually exclusive with plugin path. |
-| `ref` | default branch | Branch installed in Playground and targeted by export. |
+| `ref` | default branch | Branch installed in Playground and compared against for export. |
+| `base-branch` | `ref` or default branch | Branch used to create and target new PRs. |
 | `playground-host` | `https://playground.wordpress.net/` | HTTPS Playground host supporting GitHub export. |
 | `github-token` | `${{ github.token }}` | Token for managing the issue comment. |
 
@@ -91,7 +93,9 @@ Outputs: `playground-url`, `blueprint-json`, and `comment-id`.
 1. Open the issue's Playground link and complete GitHub sign-in.
 2. Connect your AI client and ask it to read `/wordpress/PLAYGROUND-ISSUE.md`, or make changes manually.
 3. Review and test changes inside the installed plugin or theme directory.
-4. Use Playground's **Export to GitHub** to create a PR. The destination branch and repository directory are preconfigured. Include `Fixes #123` (your issue number) in the PR description.
+4. Ask your connected AI client to submit a PR using `playground_export_to_github`, or use Playground's **Export to GitHub**. The destination branch and repository directory are preconfigured. Include `Fixes #123` (your issue number) in the PR description.
+
+The WebMCP tool `playground_export_to_github` accepts `{}` to use the export settings from the generated link, including the source directory, repository directory, comparison branch, PR base branch, and commit message. It requires GitHub sign-in in Playground. Tool availability depends on the Playground host and connected client; use a host running a build with WebMCP GitHub export support. Export remains an explicit contributor action after review and testing.
 
 The generated fallback uses the native blueprint equivalent of the step library's `gitPlugin` / `gitTheme` steps with `prs: true`. Export destination directories are configured explicitly for monorepos, including when using a repository blueprint. GitHub authentication belongs to the contributor's browser session; the workflow token is never included in the link or blueprint.
 

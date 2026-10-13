@@ -32,7 +32,7 @@ try {
     if (issue.state === 'open' && !issue.pull_request) {
       const ref = input('ref') || repository.default_branch;
       const repositoryBlueprint = await loadRepositoryBlueprint(api, repoPath, ref);
-      const result = buildPlayground({ repository, issue, pluginPath: input('plugin-path'), themePath: input('theme-path'), ref, repositoryBlueprint, host: input('playground-host') || undefined });
+      const result = buildPlayground({ repository, issue, pluginPath: input('plugin-path'), themePath: input('theme-path'), ref, baseBranch: input('base-branch'), repositoryBlueprint, host: input('playground-host') || undefined });
       const commentId = await publishComment(api, repoPath, issue.number, result.body);
       for (const [key, value] of Object.entries({ 'playground-url': result.playgroundUrl, 'blueprint-json': JSON.stringify(result.blueprint), 'comment-id': commentId })) {
         const delimiter = randomUUID();

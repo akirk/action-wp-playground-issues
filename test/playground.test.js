@@ -59,6 +59,7 @@ test('link round-trips the blueprint and configures authentication without token
   assert.equal(query.get('gh-ensure-auth'), 'yes');
   assert.equal(query.get('ghexport-repo-url'), 'https://github.com/owner/my-plugin/tree/trunk');
   assert.equal(query.get('ghexport-pr-action'), 'create');
+  assert.equal(query.get('ghexport-base-branch'), 'trunk');
   assert.equal(query.get('ghexport-repo-root'), '/');
   assert.equal(query.get('ghexport-commit-message'), 'Fixes #42');
   assert.equal(result.blueprint.steps[0].pluginData.path, '/');
@@ -74,8 +75,23 @@ test('a specific distribution branch is used for installation, export, and issue
   assert.equal(result.blueprint.steps[0].pluginData.refType, 'branch');
   assert.equal(result.blueprint.steps[0].pluginData.path, '/');
   assert.equal(query.get('ghexport-repo-url'), 'https://github.com/owner/my-plugin/tree/dist/main');
+  assert.equal(query.get('ghexport-base-branch'), 'dist/main');
   assert.equal(query.get('ghexport-repo-root'), '/');
   assert.ok(result.blueprint.steps[1].data.includes('Base branch: dist/main\n'));
+});
+
+test('PR base branch is independent of the installed comparison branch', () => {
+  for (const repositoryBlueprint of [undefined, { login: true }]) {
+    const result = build({ ref: 'dist/main', baseBranch: 'main', repositoryBlueprint });
+    const query = new URL(result.playgroundUrl).searchParams;
+    assert.equal(query.get('ghexport-repo-url'), 'https://github.com/owner/my-plugin/tree/dist/main');
+    assert.equal(query.get('ghexport-base-branch'), 'main');
+    if (!repositoryBlueprint) assert.equal(result.blueprint.steps[0].pluginData.ref, 'dist/main');
+    const context = result.blueprint.steps.at(-1).data;
+    assert.ok(context.includes('Installed branch: dist/main\nBase branch: main\n'));
+    assert.ok(context.includes('playground_export_to_github'));
+  }
+  assert.equal(new URL(build({ baseBranch: 'release/next' }).playgroundUrl).searchParams.get('ghexport-base-branch'), 'release/next');
 });
 
 test('monorepo themes map the installed directory to the original repository directory', () => {
