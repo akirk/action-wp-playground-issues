@@ -11,7 +11,7 @@ inputs:
   theme-path:
     description: Theme directory in the repository; use . for the root.
   ref:
-    description: Branch to install and target for export; defaults to the repository default branch.
+    description: Branch to install and target for export (for example, dist/main); defaults to the repository default branch.
   playground-host:
     description: WordPress Playground URL.
     default: https://playground.wordpress.net/

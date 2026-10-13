@@ -39,6 +39,18 @@ The example follows `main`; you can pin a published release tag or commit SHA in
 
 The action creates one managed bot comment and updates it when the issue changes. It skips closed issues and pull requests. The concurrency setting prevents overlapping runs from creating duplicate comments.
 
+To install from a specific branch, set `ref` in the action's inputs:
+
+```yaml
+      - uses: akirk/action-wp-playground-issues@main
+        with:
+          plugin-path: .
+          ref: dist/main
+          issue-number: ${{ inputs.issue-number }}
+```
+
+This installs the plugin from `dist/main` and configures PR export to target that branch. `plugin-path` or `theme-path` is relative to the selected branch. Without `ref`, the action uses the repository's default branch.
+
 ## Add a comment to an existing issue
 
 Once the workflow is on the repository's default branch, open **Actions → Implement issues in Playground → Run workflow**, enter the issue number, and run it. This adds the managed comment, or refreshes it if one already exists. Closed issues and PR numbers are skipped.

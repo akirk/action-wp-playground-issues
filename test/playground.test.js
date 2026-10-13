@@ -20,6 +20,17 @@ test('link round-trips the blueprint and configures authentication without token
   assert.equal(result.blueprint.steps[1].path, '/wordpress/PLAYGROUND-ISSUE.md');
 });
 
+test('a specific distribution branch is used for installation, export, and issue context', () => {
+  const result = build({ ref: 'dist/main' });
+  const query = new URL(result.playgroundUrl).searchParams;
+  assert.equal(result.blueprint.steps[0].pluginData.ref, 'dist/main');
+  assert.equal(result.blueprint.steps[0].pluginData.refType, 'branch');
+  assert.equal(result.blueprint.steps[0].pluginData.path, '/');
+  assert.equal(query.get('ghexport-repo-url'), 'https://github.com/owner/my-plugin/tree/dist/main');
+  assert.equal(query.get('ghexport-repo-root'), '/');
+  assert.ok(result.blueprint.steps[1].data.includes('Base branch: dist/main\n'));
+});
+
 test('monorepo themes map the installed directory to the original repository directory', () => {
   const result = build({ pluginPath: '', themePath: 'themes/custom-theme', ref: 'feature/design' });
   const query = new URL(result.playgroundUrl).searchParams;
